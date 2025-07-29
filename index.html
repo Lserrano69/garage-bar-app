@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Garage Bar - Control</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Garage Cócteles y Micheladas</h1>
+
+    <!-- Ventas -->
+    <section>
+      <h2>Registrar Ventas</h2>
+      <div id="ventas-form"></div>
+      <button onclick="guardarVentas()">Guardar Ventas del Día</button>
+    </section>
+
+    <!-- Inventario -->
+    <section>
+      <h2>Inventario</h2>
+      <button onclick="cargarInventario()">Actualizar Inventario</button>
+      <div id="inventario-lista"></div>
+    </section>
+
+    <!-- Reporte -->
+    <section>
+      <h2>Reporte Diario</h2>
+      <div id="reporte"></div>
+      <button onclick="generarReporte()">Generar Reporte</button>
+    </section>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module" src="firebase-config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
