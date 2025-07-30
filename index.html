@@ -6,7 +6,6 @@
     <title>Garage Cócteles y Micheladas</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
         :root {
             --primary: #e74c3c;
@@ -123,6 +122,18 @@
             border-radius: 8px;
             margin-bottom: 10px;
             background: #f8f9fa;
+            transition: background 0.3s ease;
+        }
+
+        .product-item.sold {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            animation: highlight 0.8s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background: #d4edda; }
+            100% { background: #f8f9fa; }
         }
 
         .product-info {
@@ -480,7 +491,7 @@
     </div>
 
     <script type="module">
-        // Configuración de Firebase
+        // === 🔑 Reemplaza con tus credenciales de Firebase ===
         const firebaseConfig = {
             const firebaseConfig = {
   apiKey: "AIzaSyAfemilUuhj1qnoU1pcJ_9A7cxlq-NUzf0",
@@ -490,11 +501,11 @@
   messagingSenderId: "215355618298",
   appId: "1:215355618298:web:eeee77976440bb7de82a43"
 };
+        // ====================================================
 
         // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
 
         // Definición de productos
         const productos = [
@@ -512,10 +523,8 @@
             { id: 'palomitas', nombre: 'Palomitas', precio: 35, categoria: 'Comida', stock: 30 }
         ];
 
-        // Estado de la aplicación
+        // Estado
         let inventario = [...productos];
-        let ventasDelDia = {};
-        let ventasHistoricas = [];
 
         // Elementos del DOM
         const salesForm = document.getElementById('salesForm');
@@ -525,7 +534,6 @@
         const reportContainer = document.getElementById('reportContainer');
         const reportContent = document.getElementById('reportContent');
 
-        // Botones
         const saveSalesBtn = document.getElementById('saveSalesBtn');
         const resetSalesBtn = document.getElementById('resetSalesBtn');
         const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
@@ -534,60 +542,45 @@
         const downloadReportBtn = document.getElementById('downloadReportBtn');
         const themeToggle = document.getElementById('themeToggle');
 
-        // Spinners
         const saveSpinner = document.getElementById('saveSpinner');
         const refreshSpinner = document.getElementById('refreshSpinner');
         const reportSpinner = document.getElementById('reportSpinner');
 
-        // Mostrar mensaje de estado
+        // Mostrar mensaje
         function mostrarMensaje(tipo, mensaje) {
             statusMessage.textContent = mensaje;
             statusMessage.className = `status-message ${tipo}`;
             statusMessage.classList.add('show');
-            
-            setTimeout(() => {
-                statusMessage.classList.remove('show');
-            }, 5000);
+            setTimeout(() => statusMessage.classList.remove('show'), 5000);
         }
 
-        // Mostrar spinner
-        function mostrarSpinner(elemento) {
-            elemento.style.display = 'inline-block';
-            elemento.previousElementSibling?.disabled = true;
+        function mostrarSpinner(spinner) {
+            spinner.style.display = 'inline-block';
         }
 
-        // Ocultar spinner
-        function ocultarSpinner(elemento) {
-            elemento.style.display = 'none';
-            elemento.previousElementSibling?.disabled = false;
+        function ocultarSpinner(spinner) {
+            spinner.style.display = 'none';
         }
 
-        // Generar formulario de ventas
+        // Generar formulario
         function generarFormularioVentas() {
             salesForm.innerHTML = '';
-            
             productos.forEach(producto => {
-                const productoElement = document.createElement('div');
-                productoElement.className = 'product-item';
-                productoElement.innerHTML = `
+                const div = document.createElement('div');
+                div.className = 'product-item';
+                div.innerHTML = `
                     <div class="product-info">
                         <div class="product-name">${producto.nombre}</div>
                         <div class="product-price">$${producto.precio}</div>
                         <div class="product-stock">Stock: ${producto.stock}</div>
                     </div>
-                    <input type="number" 
-                           class="quantity-input" 
-                           id="qty-${producto.id}" 
-                           value="0" 
-                           min="0" 
-                           max="${producto.stock}"
-                           placeholder="0">
+                    <input type="number" class="quantity-input" id="qty-${producto.id}" value="0" min="0" max="${producto.stock}">
                 `;
-                salesForm.appendChild(productoElement);
+                salesForm.appendChild(div);
             });
         }
 
-        // Generar lista de inventario
+        // Generar inventario
         function generarListaInventario() {
             inventoryList.innerHTML = `
                 <table class="inventory-table">
@@ -599,39 +592,190 @@
                             <th>Categoría</th>
                         </tr>
                     </thead>
-                    <tbody id="inventoryTableBody">
-                    </tbody>
+                    <tbody id="inventoryTableBody"></tbody>
                 </table>
             `;
-            
-            const tableBody = document.getElementById('inventoryTableBody');
-            inventario.forEach(producto => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${producto.nombre}</td>
-                    <td>$${producto.precio}</td>
-                    <td class="${producto.stock < 10 ? 'low-stock' : ''}">${producto.stock} ${producto.stock < 10 ? '(Bajo)' : ''}</td>
-                    <td>${producto.categoria}</td>
+            const tbody = document.getElementById('inventoryTableBody');
+            inventario.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.nombre}</td>
+                    <td>$${p.precio}</td>
+                    <td class="${p.stock < 10 ? 'low-stock' : ''}">${p.stock} ${p.stock < 10 ? '(Bajo)' : ''}</td>
+                    <td>${p.categoria}</td>
                 `;
-                tableBody.appendChild(row);
+                tbody.appendChild(tr);
             });
         }
 
-        // Obtener cantidades de ventas
+        // Obtener ventas
         function obtenerVentasDelDia() {
             const ventas = {};
-            let total = 0;
-            let items = 0;
+            let total = 0, items = 0;
+            productos.forEach(p => {
+                const input = document.getElementById(`qty-${p.id}`);
+                const cant = parseInt(input.value) || 0;
+                if (cant > 0) {
+                    ventas[p.id] = { nombre: p.nombre, cantidad: cant, precio: p.precio, total: cant * p.precio };
+                    total += cant * p.precio;
+                    items += cant;
+                }
+            });
+            return { ventas, total, items };
+        }
 
-            productos.forEach(producto => {
-                const input = document.getElementById(`qty-${producto.id}`);
-                const cantidad = parseInt(input.value) || 0;
-                
-                if (cantidad > 0) {
-                    ventas[producto.id] = {
-                        nombre: producto.nombre,
-                        cantidad: cantidad,
-                        precio: producto.precio,
-                        total: cantidad * producto.precio
-                    };
-     
+        // Guardar ventas
+        async function guardarVentas() {
+            try {
+                mostrarSpinner(saveSpinner);
+                const { ventas, total } = obtenerVentasDelDia();
+
+                if (Object.keys(ventas).length === 0) {
+                    mostrarMensaje('status-warning', '⚠️ No hay ventas para guardar');
+                    ocultarSpinner(saveSpinner);
+                    return;
+                }
+
+                // Resaltar productos vendidos
+                productos.forEach(p => {
+                    const input = document.getElementById(`qty-${p.id}`);
+                    const cant = parseInt(input.value) || 0;
+                    const item = input.closest('.product-item');
+                    if (cant > 0) item.classList.add('sold');
+                });
+
+                // Guardar en Firebase
+                await db.collection('ventas').add({
+                    ventas,
+                    total,
+                    fecha: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // Actualizar inventario
+                for (const [id, v] of Object.entries(ventas)) {
+                    await db.collection('inventario').doc(id).update({
+                        stock: firebase.firestore.FieldValue.increment(-v.cantidad)
+                    });
+                }
+
+                // Limpiar campos
+                setTimeout(() => {
+                    productos.forEach(p => {
+                        const input = document.getElementById(`qty-${p.id}`);
+                        input.value = '0';
+                        const item = input.closest('.product-item');
+                        item.classList.remove('sold');
+                    });
+                    mostrarMensaje('status-success', '✅ Ventas guardadas y campos limpiados');
+                    cargarInventario();
+                }, 600);
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarMensaje('status-error', `❌ Error: ${error.message}`);
+            } finally {
+                ocultarSpinner(saveSpinner);
+            }
+        }
+
+        // Cargar inventario
+        async function cargarInventario() {
+            try {
+                mostrarSpinner(refreshSpinner);
+                const snapshot = await db.collection('inventario').get();
+                if (!snapshot.empty) {
+                    inventario = [];
+                    snapshot.forEach(doc => inventario.push({ id: doc.id, ...doc.data() }));
+                }
+                generarListaInventario();
+                mostrarMensaje('status-success', '📦 Inventario actualizado');
+            } catch (error) {
+                mostrarMensaje('status-error', `❌ Error: ${error.message}`);
+                inventario = [...productos];
+                generarListaInventario();
+            } finally {
+                ocultarSpinner(refreshSpinner);
+            }
+        }
+
+        // Generar reporte
+        async function generarReporte() {
+            try {
+                mostrarSpinner(reportSpinner);
+                const { ventas, total } = obtenerVentasDelDia();
+                const fecha = new Date().toLocaleDateString('es-MX');
+                let r = `📋 *REPORTE DIARIO*\n📅 ${fecha}\n\n`;
+
+                if (Object.keys(ventas).length === 0) {
+                    r += '🚫 *NO HUBO VENTAS*\n';
+                } else {
+                    for (const [id, v] of Object.entries(ventas)) {
+                        r += `• ${v.cantidad}x ${v.nombre} = $${v.total}\n`;
+                    }
+                    r += `\n💰 *TOTAL: $${total}*`;
+                }
+
+                reportContent.textContent = r;
+                reportContainer.style.display = 'block';
+                mostrarMensaje('status-success', '📊 Reporte generado');
+            } catch (error) {
+                mostrarMensaje('status-error', `❌ Error: ${error.message}`);
+            } finally {
+                ocultarSpinner(reportSpinner);
+            }
+        }
+
+        // Copiar reporte
+        async function copiarReporte() {
+            await navigator.clipboard.writeText(reportContent.textContent);
+            mostrarMensaje('status-success', '📋 Copiado al portapapeles');
+        }
+
+        // Descargar reporte
+        function descargarReporte() {
+            const blob = new Blob([reportContent.textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `reporte-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            mostrarMensaje('status-success', '💾 Descargado');
+        }
+
+        // Buscar
+        searchInventory.addEventListener('input', () => {
+            const term = searchInventory.value.toLowerCase();
+            document.querySelectorAll('#inventoryTableBody tr').forEach(tr => {
+                tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+            });
+        });
+
+        // Tema oscuro
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', async () => {
+            generarFormularioVentas();
+            generarListaInventario();
+            await cargarInventario();
+
+            // Eventos
+            saveSalesBtn.addEventListener('click', guardarVentas);
+            resetSalesBtn.addEventListener('click', () => {
+                productos.forEach(p => document.getElementById(`qty-${p.id}`).value = '0');
+                mostrarMensaje('status-success', '🧹 Limpiado');
+            });
+            refreshInventoryBtn.addEventListener('click', cargarInventario);
+            generateReportBtn.addEventListener('click', generarReporte);
+            copyReportBtn.addEventListener('click', copiarReporte);
+            downloadReportBtn.addEventListener('click', descargarReporte);
+        });
+    </script>
+</body>
+</html>
+   
