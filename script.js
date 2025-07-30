@@ -1,3 +1,4 @@
+console.log("✅ script.js cargado correctamente");
 import { db } from './firebase-config.js';
 import { collection, getDocs, setDoc, doc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
