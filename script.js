@@ -1,6 +1,13 @@
 console.log("✅ script.js cargado correctamente");
+
+// Importaciones de Firebase
 import { db } from './firebase-config.js';
-import { collection, getDocs, setDoc, doc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { collection, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// Función para normalizar nombres (reemplaza espacios y caracteres especiales por _)
+function normalizarNombre(nombre) {
+  return nombre.replace(/[^a-zA-Z0-9]/g, '_');
+}
 
 // Productos y precios
 const productos = [
@@ -33,10 +40,10 @@ const productos = [
   { nombre: "Crema soda", precio: 0.75 }
 ];
 
-// Inventario inicial (puedes cambiarlo después)
+// Inventario inicial
 let inventario = {};
 productos.forEach(p => {
-  inventario[p.nombre] = 50; // Stock inicial (ajusta según tu realidad)
+  inventario[p.nombre] = 50; // Stock inicial (puedes ajustarlo)
 });
 
 // Generar formulario de ventas
@@ -45,9 +52,10 @@ function generarFormularioVentas() {
   contenedor.innerHTML = '';
   productos.forEach(p => {
     const div = document.createElement('div');
+    const nombreNormalizado = normalizarNombre(p.nombre);
     div.innerHTML = `
       <label>${p.nombre} ($${p.precio})</label>
-      <input type="number" id="venta_${p.nombre}" value="0" min="0" />
+      <input type="number" id="venta_${nombreNormalizado}" value="0" min="0" />
     `;
     contenedor.appendChild(div);
   });
@@ -59,14 +67,19 @@ async function guardarVentas() {
   let total = 0;
 
   productos.forEach(p => {
-    const input = document.getElementById(`venta_${p.nombre}`);
+    const nombreNormalizado = normalizarNombre(p.nombre);
+    const input = document.getElementById(`venta_${nombreNormalizado}`);
+    if (!input) {
+      console.error(`Input no encontrado: venta_${nombreNormalizado}`);
+      return;
+    }
     const cantidad = parseInt(input.value) || 0;
     if (cantidad > 0) {
       ventas[p.nombre] = cantidad;
       total += cantidad * p.precio;
       inventario[p.nombre] = (inventario[p.nombre] || 50) - cantidad;
     }
-    input.value = 0; // Reinicio de campo
+    input.value = 0; // Reiniciar campo inmediatamente
   });
 
   try {
@@ -76,28 +89,25 @@ async function guardarVentas() {
       total,
       timestamp: serverTimestamp()
     });
-
     alert(`Ventas guardadas. Total: $${total.toFixed(2)}`);
-    cargarInventario();
+    cargarInventario(); // Actualiza el inventario mostrado
   } catch (error) {
     console.error("Error al guardar en Firebase:", error);
     alert("Hubo un error al guardar las ventas. Revisa la consola.");
   }
-
-  // Reinicio forzado de todos los campos
-  productos.forEach(p => {
-    const input = document.getElementById(`venta_${p.nombre}`);
-    input.value = 0;
-  });
 }
 
-// Cargar inventario
+// Cargar inventario desde Firebase
 async function cargarInventario() {
-  const querySnapshot = await getDocs(collection(db, "inventario"));
-  if (!querySnapshot.empty) {
-    querySnapshot.forEach(doc => {
-      inventario[doc.id] = doc.data().stock;
-    });
+  try {
+    const querySnapshot = await getDocs(collection(db, "inventario"));
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach(doc => {
+        inventario[doc.id] = doc.data().stock;
+      });
+    }
+  } catch (error) {
+    console.error("Error al cargar inventario:", error);
   }
 
   const contenedor = document.getElementById('inventario-lista');
@@ -109,14 +119,15 @@ async function cargarInventario() {
   contenedor.innerHTML += '</ul>';
 }
 
-// Generar reporte
+// Generar reporte diario
 function generarReporte() {
   const fecha = new Date().toLocaleDateString();
   let reporte = `📅 Reporte ${fecha}\n\n`;
 
   let totalVentas = 0;
   productos.forEach(p => {
-    const input = document.getElementById(`venta_${p.nombre}`);
+    const nombreNormalizado = normalizarNombre(p.nombre);
+    const input = document.getElementById(`venta_${nombreNormalizado}`);
     const cantidad = parseInt(input.value) || 0;
     if (cantidad > 0) {
       const subtotal = cantidad * p.precio;
@@ -129,16 +140,21 @@ function generarReporte() {
 
   // Productos bajos
   reporte += `\n🛒 Productos bajos:\n`;
+  let bajoStock = false;
   for (const [nombre, stock] of Object.entries(inventario)) {
     if (stock < 10) {
       reporte += `- ${nombre}: ${stock}\n`;
+      bajoStock = true;
     }
+  }
+  if (!bajoStock) {
+    reporte += `- Ninguno\n`;
   }
 
   document.getElementById('reporte').textContent = reporte;
 }
 
-// Inicializar
+// Inicializar al cargar la página
 window.onload = () => {
   generarFormularioVentas();
   cargarInventario();
