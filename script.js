@@ -66,6 +66,7 @@ async function guardarVentas() {
       total += cantidad * p.precio;
       inventario[p.nombre] = (inventario[p.nombre] || 50) - cantidad;
     }
+    input.value = 0; // Reinicio de campo
   });
 
   try {
@@ -83,7 +84,7 @@ async function guardarVentas() {
     alert("Hubo un error al guardar las ventas. Revisa la consola.");
   }
 
-  // ✅ Reinicio forzado de todos los campos
+  // Reinicio forzado de todos los campos
   productos.forEach(p => {
     const input = document.getElementById(`venta_${p.nombre}`);
     input.value = 0;
