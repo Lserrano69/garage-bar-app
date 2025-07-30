@@ -132,3 +132,8 @@ window.onload = () => {
   generarFormularioVentas();
   cargarInventario();
 };
+
+// Hacer funciones accesibles globalmente para onclick
+window.guardarVentas = guardarVentas;
+window.cargarInventario = cargarInventario;
+window.generarReporte = generarReporte;
