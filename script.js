@@ -64,14 +64,10 @@ async function guardarVentas() {
     if (cantidad > 0) {
       ventas[p.nombre] = cantidad;
       total += cantidad * p.precio;
-      // Actualizar inventario local
       inventario[p.nombre] = (inventario[p.nombre] || 50) - cantidad;
     }
-    // ✅ Reiniciamos el campo a 0 después de usarlo
-    input.value = 0;
   });
 
-  // Guardar en Firebase
   try {
     await addDoc(collection(db, "ventas"), {
       fecha: new Date().toISOString().split('T')[0],
@@ -81,11 +77,17 @@ async function guardarVentas() {
     });
 
     alert(`Ventas guardadas. Total: $${total.toFixed(2)}`);
-    cargarInventario(); // Actualiza el inventario mostrado
+    cargarInventario();
   } catch (error) {
     console.error("Error al guardar en Firebase:", error);
     alert("Hubo un error al guardar las ventas. Revisa la consola.");
   }
+
+  // ✅ Reinicio forzado de todos los campos
+  productos.forEach(p => {
+    const input = document.getElementById(`venta_${p.nombre}`);
+    input.value = 0;
+  });
 }
 
 // Cargar inventario
