@@ -1,9 +1,5 @@
 console.log("✅ script.js cargado correctamente");
 
-// Importaciones de Firebase
-import { db } from './firebase-config.js';
-import { collection, getDocs, addDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
 // Productos y precios
 const productos = [
   { nombre: "Cóctel de conchas", precio: 3.50 },
@@ -35,7 +31,7 @@ const productos = [
   { nombre: "Crema soda", precio: 0.75 }
 ];
 
-// Inventario local (se actualiza con cada venta)
+// Inventario local (solo en memoria, no depende de Firebase)
 let inventario = {};
 productos.forEach(p => {
   inventario[p.nombre] = 50; // Stock inicial
@@ -49,48 +45,35 @@ function generarFormularioVentas() {
     const div = document.createElement('div');
     div.innerHTML = `
       <label>${p.nombre} ($${p.precio})</label>
-      <input type="number" class="venta-input" data-nombre="${p.nombre}" value="0" min="0" />
+      <input type="number" id="venta_${p.nombre}" value="0" min="0" />
     `;
     contenedor.appendChild(div);
   });
 }
 
 // Guardar ventas
-async function guardarVentas() {
+function guardarVentas() {
   const ventas = {};
   let total = 0;
 
-  document.querySelectorAll('.venta-input').forEach(input => {
-    const nombre = input.dataset.nombre;
+  productos.forEach(p => {
+    const input = document.getElementById(`venta_${p.nombre}`);
     const cantidad = parseInt(input.value) || 0;
     if (cantidad > 0) {
-      ventas[nombre] = cantidad;
-      total += cantidad * productos.find(p => p.nombre === nombre).precio;
-      inventario[nombre] = (inventario[nombre] || 50) - cantidad;
+      ventas[p.nombre] = cantidad;
+      total += cantidad * p.precio;
+      inventario[p.nombre] = (inventario[p.nombre] || 50) - cantidad;
     }
     input.value = 0; // Reiniciar campo
   });
 
-  try {
-    await addDoc(collection(db, "ventas"), {
-      fecha: new Date().toISOString().split('T')[0],
-      ventas,
-      total,
-      timestamp: serverTimestamp()
-    });
-    alert(`Ventas guardadas. Total: $${total.toFixed(2)}`);
-    mostrarInventario(); // ✅ Actualiza el inventario en pantalla
-  } catch (error) {
-    console.error("Error al guardar:", error);
-    alert("Error al guardar. Revisa la consola.");
-  }
+  alert(`Ventas guardadas. Total: $${total.toFixed(2)}`);
+  mostrarInventario(); // Actualiza el inventario en pantalla
 }
 
-// ✅ Mostrar inventario en pantalla (sin depender de Firebase)
+// Mostrar inventario en pantalla (sin Firebase)
 function mostrarInventario() {
   const contenedor = document.getElementById('inventario-lista');
-  if (!contenedor) return;
-
   contenedor.innerHTML = '<ul>';
   for (const [nombre, stock] of Object.entries(inventario)) {
     const color = stock < 10 ? 'style="color: red; font-weight: bold;"' : '';
@@ -105,39 +88,35 @@ function generarReporte() {
   let reporte = `📅 Reporte ${fecha}\n\n`;
 
   let totalVentas = 0;
-  document.querySelectorAll('.venta-input').forEach(input => {
-    const nombre = input.dataset.nombre;
+  productos.forEach(p => {
+    const input = document.getElementById(`venta_${p.nombre}`);
     const cantidad = parseInt(input.value) || 0;
-    const producto = productos.find(p => p.nombre === nombre);
-    if (cantidad > 0 && producto) {
-      const subtotal = cantidad * producto.precio;
+    if (cantidad > 0) {
+      const subtotal = cantidad * p.precio;
       totalVentas += subtotal;
-      reporte += `${nombre}: ${cantidad} x $${producto.precio} = $${subtotal}\n`;
+      reporte += `${p.nombre}: ${cantidad} x $${p.precio} = $${subtotal}\n`;
     }
   });
 
   reporte += `\n💰 Total Ventas: $${totalVentas.toFixed(2)}\n`;
 
   reporte += `\n🛒 Productos bajos:\n`;
-  let bajoStock = false;
   for (const [nombre, stock] of Object.entries(inventario)) {
     if (stock < 10) {
       reporte += `- ${nombre}: ${stock}\n`;
-      bajoStock = true;
     }
   }
-  if (!bajoStock) reporte += `- Ninguno\n`;
 
   document.getElementById('reporte').textContent = reporte;
 }
 
-// Inicializar
+// Inicializar al cargar
 window.onload = () => {
   generarFormularioVentas();
-  mostrarInventario(); // ✅ Muestra el inventario al cargar
+  mostrarInventario();
 };
 
 // Hacer funciones accesibles globalmente
 window.guardarVentas = guardarVentas;
-window.mostrarInventario = mostrarInventario; // ✅ Cambiado: ahora usamos esta
+window.mostrarInventario = mostrarInventario;
 window.generarReporte = generarReporte;
