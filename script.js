@@ -35,13 +35,13 @@ const productos = [
   { nombre: "Crema soda", precio: 0.75 }
 ];
 
-// Inventario
+// Inventario inicial
 let inventario = {};
 productos.forEach(p => {
   inventario[p.nombre] = 50;
 });
 
-// ✅ Generar formulario usando data-nombre en lugar de IDs
+// Generar formulario usando data-nombre en lugar de IDs
 function generarFormularioVentas() {
   const contenedor = document.getElementById('ventas-form');
   contenedor.innerHTML = '';
@@ -61,12 +61,12 @@ function generarFormularioVentas() {
   });
 }
 
-// ✅ Guardar ventas y reiniciar campos
+// Guardar ventas y reiniciar campos
 async function guardarVentas() {
   const ventas = {};
   let total = 0;
 
-  // Obtener todos los inputs por clase
+  // Leer todos los inputs antes de reiniciar
   const inputs = document.querySelectorAll('.venta-input');
   inputs.forEach(input => {
     const nombre = input.dataset.nombre;
@@ -76,8 +76,6 @@ async function guardarVentas() {
       total += cantidad * productos.find(p => p.nombre === nombre).precio;
       inventario[nombre] = (inventario[nombre] || 50) - cantidad;
     }
-    // ✅ Reinicio directo
-    input.value = 0;
   });
 
   try {
@@ -94,17 +92,17 @@ async function guardarVentas() {
     alert("Error al guardar. Revisa la consola.");
   }
 
-  // ✅ Reinicio extra por seguridad
-  document.querySelectorAll('.venta-input').forEach(input => {
+  // Reiniciar campos después de leerlos
+  inputs.forEach(input => {
     input.value = 0;
   });
 }
 
-// Cargar inventario
+// Cargar inventario desde Firestore
 async function cargarInventario() {
   try {
     const querySnapshot = await getDocs(collection(db, "inventario"));
-    inventario = {}; // Limpiar antes de cargar
+    inventario = {}; // Limpiar inventario antes de cargar
     querySnapshot.forEach(doc => {
       inventario[doc.id] = doc.data().stock;
     });
@@ -121,13 +119,14 @@ async function cargarInventario() {
   contenedor.innerHTML += '</ul>';
 }
 
-// Generar reporte
+// Generar reporte diario
 function generarReporte() {
   const fecha = new Date().toLocaleDateString();
   let reporte = `📅 Reporte ${fecha}\n\n`;
 
   let totalVentas = 0;
-  document.querySelectorAll('.venta-input').forEach(input => {
+  const inputs = document.querySelectorAll('.venta-input');
+  inputs.forEach(input => {
     const nombre = input.dataset.nombre;
     const cantidad = parseInt(input.value) || 0;
     const producto = productos.find(p => p.nombre === nombre);
@@ -160,7 +159,7 @@ window.onload = () => {
   cargarInventario();
 };
 
-// ✅ Exponer funciones al global
+// Exponer funciones al global
 window.guardarVentas = guardarVentas;
 window.cargarInventario = cargarInventario;
 window.generarReporte = generarReporte;
