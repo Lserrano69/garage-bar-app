@@ -4,34 +4,10 @@ console.log("✅ script.js cargado correctamente");
 const productos = [
   { nombre: "Cóctel de conchas", precio: 3.50 },
   { nombre: "Cóctel de pescado", precio: 3.50 },
-  { nombre: "Cóctel de camarón", precio: 3.50 },
-  { nombre: "Cóctel mixto", precio: 3.50 },
-  { nombre: "Michelada tradicional (nac)", precio: 2.50 },
-  { nombre: "Michelada tradicional (ext)", precio: 3.00 },
-  { nombre: "Michelada Clamato (nac)", precio: 2.50 },
-  { nombre: "Michelada Clamato (ext)", precio: 3.00 },
-  { nombre: "Michelada tamarindo (nac)", precio: 2.50 },
-  { nombre: "Michelada tamarindo (ext)", precio: 3.00 },
-  { nombre: "Michelada soda mineral", precio: 2.00 },
-  { nombre: "Cerveza Pilsener", precio: 1.25 },
-  { nombre: "Cerveza Golden", precio: 1.25 },
-  { nombre: "Cerveza Suprema", precio: 1.25 },
-  { nombre: "Cerveza Regia", precio: 1.25 },
-  { nombre: "Cerveza Corona", precio: 2.00 },
-  { nombre: "Coca Cola", precio: 0.75 },
-  { nombre: "Salutaris limón", precio: 0.75 },
-  { nombre: "Salutaris toronja", precio: 0.75 },
-  { nombre: "Salutaris naranja", precio: 0.75 },
-  { nombre: "Salutaris simple", precio: 0.75 },
-  { nombre: "Fanta", precio: 0.75 },
-  { nombre: "Uva", precio: 0.75 },
-  { nombre: "Fresa", precio: 0.75 },
-  { nombre: "Fresca", precio: 0.75 },
-  { nombre: "Sprite", precio: 0.75 },
-  { nombre: "Crema soda", precio: 0.75 }
+  // ... otros productos ...
 ];
 
-// Inventario local (solo en memoria, no depende de Firebase)
+// Inventario local (solo en memoria)
 let inventario = {};
 productos.forEach(p => {
   inventario[p.nombre] = 50; // Stock inicial
@@ -71,9 +47,14 @@ function guardarVentas() {
   mostrarInventario(); // Actualiza el inventario en pantalla
 }
 
-// Mostrar inventario en pantalla (sin Firebase)
+// Mostrar inventario en pantalla
 function mostrarInventario() {
   const contenedor = document.getElementById('inventario-lista');
+  if (!contenedor) {
+    console.error("Contenedor 'inventario-lista' no encontrado");
+    return;
+  }
+
   contenedor.innerHTML = '<ul>';
   for (const [nombre, stock] of Object.entries(inventario)) {
     const color = stock < 10 ? 'style="color: red; font-weight: bold;"' : '';
@@ -113,7 +94,7 @@ function generarReporte() {
 // Inicializar al cargar
 window.onload = () => {
   generarFormularioVentas();
-  mostrarInventario();
+  mostrarInventario(); // Muestra el inventario al cargar
 };
 
 // Hacer funciones accesibles globalmente
