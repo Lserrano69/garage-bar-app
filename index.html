@@ -1,38 +1,917 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Garage Bar - Control</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garage Cócteles y Micheladas</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --primary-dark: #c0392b;
+            --secondary: #34495e;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --gray: #95a5a6;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            color: var(--light);
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        @media (min-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .product-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .product-price {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .product-stock {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .low-stock {
+            color: var(--danger) !important;
+            font-weight: 600;
+        }
+
+        .quantity-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .quantity-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #27ae60;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background: #d35400;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+            .btn-group {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .report-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .report-title {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--success);
+        }
+
+        .report-content {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            border: 1px solid #eee;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
+        .status-success {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .status-error {
+            background: rgba(231, 76, 60, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .status-warning {
+            background: rgba(243, 156, 18, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .dark-mode {
+            --primary: #3498db;
+            --primary-dark: #2980b9;
+            --secondary: #95a5a6;
+            --light: #2c3e50;
+            --dark: #ecf0f1;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --gray: #7f8c8d;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+
+        .dark-mode .card,
+        .dark-mode .report-container {
+            background: #1a1a2e;
+            color: #ecf0f1;
+        }
+
+        .dark-mode .product-item {
+            background: #2d2d42;
+            border-color: #3d3d52;
+        }
+
+        .dark-mode .product-name {
+            color: #ecf0f1;
+        }
+
+        .dark-mode .product-stock {
+            color: #95a5a6;
+        }
+
+        .dark-mode .report-content {
+            background: #2d2d42;
+            color: #ecf0f1;
+            border-color: #3d3d52;
+        }
+
+        .dark-mode .status-message {
+            color: #ecf0f1;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .inventory-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .inventory-table th,
+        .inventory-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .inventory-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .inventory-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .mobile-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .mobile-warning {
+                display: block;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Garage Cócteles y Micheladas</h1>
+    <button id="themeToggle" class="theme-toggle">🌙</button>
 
-    <!-- Ventas -->
-    <section>
-      <h2>Registrar Ventas</h2>
-      <div id="ventas-form"></div>
-      <button onclick="guardarVentas()">Guardar Ventas del Día</button>
-    </section>
+    <div class="container">
+        <header>
+            <h1>Garage Cócteles y Micheladas</h1>
+            <p class="subtitle">Sistema de gestión de ventas e inventario</p>
+        </header>
 
-    <!-- Inventario -->
-    <section>
-      <h2>Inventario</h2>
-      <button onclick="cargarInventario()">Actualizar Inventario</button>
-      <div id="inventario-lista"></div>
-    </section>
+        <div class="mobile-warning">
+            💡 Consejo: Para mejor experiencia, gira tu dispositivo a modo horizontal si es posible.
+        </div>
 
-    <!-- Reporte -->
-    <section>
-      <h2>Reporte Diario</h2>
-      <div id="reporte"></div>
-      <button onclick="generarReporte()">Generar Reporte</button>
-    </section>
-  </div>
+        <div id="statusMessage" class="status-message"></div>
 
-  <!-- Firebase -->
-<script type="module" src="script.js"></script>  
+        <div class="app-container">
+            <div class="card">
+                <h2 class="card-title">📝 Registrar Ventas</h2>
+                <div id="salesForm">
+                    <!-- Productos se generarán dinámicamente -->
+                </div>
+                <div class="btn-group">
+                    <button id="saveSalesBtn" class="btn btn-success">
+                        <span id="saveSpinner" class="loading" style="display: none;"></span>
+                        Guardar Ventas del Día
+                    </button>
+                    <button id="resetSalesBtn" class="btn btn-warning">Limpiar Cantidades</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">📦 Inventario</h2>
+                <div class="form-group">
+                    <label for="searchInventory">Buscar producto:</label>
+                    <input type="text" id="searchInventory" class="quantity-input" placeholder="Buscar...">
+                </div>
+                <div id="inventoryList">
+                    <!-- Inventario se generará dinámicamente -->
+                </div>
+                <button id="refreshInventoryBtn" class="btn btn">
+                    <span id="refreshSpinner" class="loading" style="display: none;"></span>
+                    Actualizar Inventario
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">📊 Reporte Diario</h2>
+            <p>Genera un reporte listo para copiar y pegar en WhatsApp.</p>
+            <button id="generateReportBtn" class="btn btn">
+                <span id="reportSpinner" class="loading" style="display: none;"></span>
+                Generar Reporte
+            </button>
+            
+            <div id="reportContainer" class="report-container" style="display: none;">
+                <h3 class="report-title">📋 Reporte Diario</h3>
+                <div id="reportContent" class="report-content"></div>
+                <div class="report-actions">
+                    <button id="copyReportBtn" class="btn btn-success">📋 Copiar Reporte</button>
+                    <button id="downloadReportBtn" class="btn btn">💾 Descargar TXT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Configuración de Firebase
+        const firebaseConfig = {
+            const firebaseConfig = {
+  apiKey: "AIzaSyAfemilUuhj1qnoU1pcJ_9A7cxlq-NUzf0",
+  authDomain: "garage-bar.firebaseapp.com",
+  projectId: "garage-bar",
+  storageBucket: "garage-bar.firebasestorage.app",
+  messagingSenderId: "215355618298",
+  appId: "1:215355618298:web:eeee77976440bb7de82a43"
+};
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Definición de productos
+        const productos = [
+            { id: 'michelada', nombre: 'Michelada', precio: 80, categoria: 'Bebidas', stock: 50 },
+            { id: 'michelada-campechana', nombre: 'Michelada Campechana', precio: 100, categoria: 'Bebidas', stock: 30 },
+            { id: 'margarita', nombre: 'Margarita', precio: 90, categoria: 'Bebidas', stock: 40 },
+            { id: 'mojito', nombre: 'Mojito', precio: 85, categoria: 'Bebidas', stock: 35 },
+            { id: 'cuba-libre', nombre: 'Cuba Libre', precio: 75, categoria: 'Bebidas', stock: 45 },
+            { id: 'tequila', nombre: 'Tequila', precio: 60, categoria: 'Bebidas', stock: 60 },
+            { id: 'cerveza', nombre: 'Cerveza', precio: 40, categoria: 'Bebidas', stock: 100 },
+            { id: 'agua', nombre: 'Agua', precio: 20, categoria: 'Bebidas', stock: 80 },
+            { id: 'nachos', nombre: 'Nachos', precio: 70, categoria: 'Comida', stock: 25 },
+            { id: 'tacos', nombre: 'Tacos', precio: 15, categoria: 'Comida', stock: 200 },
+            { id: 'botana', nombre: 'Botana', precio: 120, categoria: 'Comida', stock: 20 },
+            { id: 'palomitas', nombre: 'Palomitas', precio: 35, categoria: 'Comida', stock: 30 }
+        ];
+
+        // Estado de la aplicación
+        let inventario = [...productos];
+        let ventasDelDia = {};
+        let ventasHistoricas = [];
+
+        // Elementos del DOM
+        const salesForm = document.getElementById('salesForm');
+        const inventoryList = document.getElementById('inventoryList');
+        const searchInventory = document.getElementById('searchInventory');
+        const statusMessage = document.getElementById('statusMessage');
+        const reportContainer = document.getElementById('reportContainer');
+        const reportContent = document.getElementById('reportContent');
+
+        // Botones
+        const saveSalesBtn = document.getElementById('saveSalesBtn');
+        const resetSalesBtn = document.getElementById('resetSalesBtn');
+        const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const copyReportBtn = document.getElementById('copyReportBtn');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // Spinners
+        const saveSpinner = document.getElementById('saveSpinner');
+        const refreshSpinner = document.getElementById('refreshSpinner');
+        const reportSpinner = document.getElementById('reportSpinner');
+
+        // Mostrar mensaje de estado
+        function mostrarMensaje(tipo, mensaje) {
+            statusMessage.textContent = mensaje;
+            statusMessage.className = `status-message ${tipo}`;
+            statusMessage.classList.add('show');
+            
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        // Mostrar spinner
+        function mostrarSpinner(elemento) {
+            elemento.style.display = 'inline-block';
+            elemento.previousElementSibling?.disabled = true;
+        }
+
+        // Ocultar spinner
+        function ocultarSpinner(elemento) {
+            elemento.style.display = 'none';
+            elemento.previousElementSibling?.disabled = false;
+        }
+
+        // Generar formulario de ventas
+        function generarFormularioVentas() {
+            salesForm.innerHTML = '';
+            
+            productos.forEach(producto => {
+                const productoElement = document.createElement('div');
+                productoElement.className = 'product-item';
+                productoElement.innerHTML = `
+                    <div class="product-info">
+                        <div class="product-name">${producto.nombre}</div>
+                        <div class="product-price">$${producto.precio}</div>
+                        <div class="product-stock">Stock: ${producto.stock}</div>
+                    </div>
+                    <input type="number" 
+                           class="quantity-input" 
+                           id="qty-${producto.id}" 
+                           value="0" 
+                           min="0" 
+                           max="${producto.stock}"
+                           placeholder="0">
+                `;
+                salesForm.appendChild(productoElement);
+            });
+        }
+
+        // Generar lista de inventario
+        function generarListaInventario() {
+            inventoryList.innerHTML = `
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                    </tbody>
+                </table>
+            `;
+            
+            const tableBody = document.getElementById('inventoryTableBody');
+            inventario.forEach(producto => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${producto.nombre}</td>
+                    <td>$${producto.precio}</td>
+                    <td class="${producto.stock < 10 ? 'low-stock' : ''}">${producto.stock} ${producto.stock < 10 ? '(Bajo)' : ''}</td>
+                    <td>${producto.categoria}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Obtener cantidades de ventas
+        function obtenerVentasDelDia() {
+            const ventas = {};
+            let total = 0;
+            let items = 0;
+
+            productos.forEach(producto => {
+                const input = document.getElementById(`qty-${producto.id}`);
+                const cantidad = parseInt(input.value) || 0;
+                
+                if (cantidad > 0) {
+                    ventas[producto.id] = {
+                        nombre: producto.nombre,
+                        cantidad: cantidad,
+                        precio: producto.precio,
+                        total: cantidad * producto.precio
+                    };
+                    total += cantidad * producto.precio;
+                    items += cantidad;
+                }
+            });
+
+            return { ventas, total, items };
+        }
+
+        // Guardar ventas en Firebase
+        async function guardarVentas() {
+            try {
+                mostrarSpinner(saveSpinner);
+                
+                const { ventas, total, items } = obtenerVentasDelDia();
+                
+                if (Object.keys(ventas).length === 0) {
+                    mostrarMensaje('status-warning', '⚠️ No hay ventas para guardar');
+                    ocultarSpinner(saveSpinner);
+                    return;
+                }
+
+                // Verificar stock suficiente
+                for (const [id, venta] of Object.entries(ventas)) {
+                    const producto = inventario.find(p => p.id === id);
+                    if (producto && venta.cantidad > producto.stock) {
+                        mostrarMensaje('status-error', `❌ Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}`);
+                        ocultarSpinner(saveSpinner);
+                        return;
+                    }
+                }
+
+                const ventaData = {
+                    ventas: ventas,
+                    total: total,
+                    items: items,
+                    fecha: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('ventas').add(ventaData);
+                
+                // Actualizar inventario
+                for (const [id, venta] of Object.entries(ventas)) {
+                    const productoRef = db.collection('inventario').doc(id);
+                    await productoRef.update({
+                        stock: firebase.firestore.FieldValue.increment(-venta.cantidad)
+                    });
+                }
+
+                mostrarMensaje('status-success', '✅ Ventas guardadas correctamente');
+                
+                // Limpiar formulario
+                productos.forEach(producto => {
+                    const input = document.getElementById(`qty-${producto.id}`);
+                    input.value = '0';
+                });
+
+                // Actualizar inventario local
+                await cargarInventario();
+                
+            } catch (error) {
+                console.error('Error al guardar ventas:', error);
+                mostrarMensaje('status-error', `❌ Error al guardar ventas: ${error.message}`);
+            } finally {
+                ocultarSpinner(saveSpinner);
+            }
+        }
+
+        // Cargar inventario desde Firebase
+        async function cargarInventario() {
+            try {
+                mostrarSpinner(refreshSpinner);
+                
+                const snapshot = await db.collection('inventario').get();
+                
+                if (snapshot.empty) {
+                    // Si no hay datos, inicializar con los productos predeterminados
+                    const batch = db.batch();
+                    productos.forEach(producto => {
+                        const docRef = db.collection('inventario').doc(producto.id);
+                        batch.set(docRef, producto);
+                    });
+                    await batch.commit();
+                    inventario = [...productos];
+                } else {
+                    inventario = [];
+                    snapshot.forEach(doc => {
+                        inventario.push({ id: doc.id, ...doc.data() });
+                    });
+                }
+
+                generarListaInventario();
+                mostrarMensaje('status-success', '📦 Inventario actualizado correctamente');
+                
+            } catch (error) {
+                console.error('Error al cargar inventario:', error);
+                mostrarMensaje('status-error', `❌ Error al cargar inventario: ${error.message}`);
+                
+                // Usar datos locales si falla Firebase
+                inventario = [...productos];
+                generarListaInventario();
+            } finally {
+                ocultarSpinner(refreshSpinner);
+            }
+        }
+
+        // Generar reporte diario
+        async function generarReporte() {
+            try {
+                mostrarSpinner(reportSpinner);
+                
+                const { ventas, total, items } = obtenerVentasDelDia();
+                const fecha = new Date().toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                let reporte = `📋 *REPORTE DIARIO - GARAGE CÓCTELES Y MICHELADAS*\n`;
+                reporte += `📅 ${fecha.toUpperCase()}\n`;
+                reporte += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+                if (Object.keys(ventas).length === 0) {
+                    reporte += `🚫 *NO HUBO VENTAS HOY*\n`;
+                } else {
+                    reporte += `🛒 *VENTAS DEL DÍA*\n\n`;
+                    
+                    for (const [id, venta] of Object.entries(ventas)) {
+                        reporte += `• ${venta.cantidad}x ${venta.nombre} - $${venta.total}\n`;
+                    }
+                    
+                    reporte += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                    reporte += `💰 *TOTAL*: $${total}\n`;
+                    reporte += `📦 *ITEMS VENDIDOS*: ${items}\n`;
+                }
+
+                reporte += `\n📦 *INVENTARIO ACTUAL*\n`;
+                reporte += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                
+                const bajoStock = [];
+                inventario.forEach(producto => {
+                    reporte += `• ${producto.nombre}: ${producto.stock}\n`;
+                    if (producto.stock < 10) {
+                        bajoStock.push(producto);
+                    }
+                });
+
+                if (bajoStock.length > 0) {
+                    reporte += `\n⚠️ *PRODUCTOS CON BAJO STOCK*\n`;
+                    bajoStock.forEach(producto => {
+                        reporte += `• ${producto.nombre}: ${producto.stock} disponibles\n`;
+                    });
+                }
+
+                reporte += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                reporte += `✅ Reporte generado automáticamente\n`;
+                reporte += `📱 Garage Bar App`;
+
+                reportContent.textContent = reporte;
+                reportContainer.style.display = 'block';
+                
+                mostrarMensaje('status-success', '📊 Reporte generado correctamente');
+                
+            } catch (error) {
+                console.error('Error al generar reporte:', error);
+                mostrarMensaje('status-error', `❌ Error al generar reporte: ${error.message}`);
+            } finally {
+                ocultarSpinner(reportSpinner);
+            }
+        }
+
+        // Copiar reporte al portapapeles
+        async function copiarReporte() {
+            try {
+                await navigator.clipboard.writeText(reportContent.textContent);
+                mostrarMensaje('status-success', '📋 Reporte copiado al portapapeles');
+            } catch (error) {
+                console.error('Error al copiar:', error);
+                mostrarMensaje('status-error', '❌ Error al copiar al portapapeles');
+            }
+        }
+
+        // Descargar reporte como archivo de texto
+        function descargarReporte() {
+            const blob = new Blob([reportContent.textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const fecha = new Date().toISOString().split('T')[0];
+            a.download = `reporte-garage-bar-${fecha}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            mostrarMensaje('status-success', '💾 Reporte descargado');
+        }
+
+        // Buscar en inventario
+        function buscarEnInventario() {
+            const termino = searchInventory.value.toLowerCase();
+            const filas = document.querySelectorAll('#inventoryTableBody tr');
+            
+            filas.forEach(fila => {
+                const texto = fila.textContent.toLowerCase();
+                fila.style.display = texto.includes(termino) ? '' : 'none';
+            });
+        }
+
+        // Alternar modo oscuro
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('darkMode', isDark);
+        }
+
+        // Inicializar aplicación
+        async function initApp() {
+            try {
+                // Verificar modo oscuro guardado
+                const darkMode = localStorage.getItem('darkMode') === 'true';
+                if (darkMode) {
+                    document.body.classList.add('dark-mode');
+                    themeToggle.textContent = '☀️';
+                }
+
+                // Generar formularios
+                generarFormularioVentas();
+                generarListaInventario();
+
+                // Cargar inventario inicial
+                await cargarInventario();
+
+                // Event listeners
+                saveSalesBtn.addEventListener('click', guardarVentas);
+                resetSalesBtn.addEventListener('click', () => {
+                    productos.forEach(producto => {
+                        const input = document.getElementById(`qty-${producto.id}`);
+                        input.value = '0';
+                    });
+                    mostrarMensaje('status-success', '🧹 Cantidades limpiadas');
+                });
+                refreshInventoryBtn.addEventListener('click', cargarInventario);
+                generateReportBtn.addEventListener('click', generarReporte);
+                copyReportBtn.addEventListener('click', copiarReporte);
+                downloadReportBtn.addEventListener('click', descargarReporte);
+                searchInventory.addEventListener('input', buscarEnventario);
+                themeToggle.addEventListener('click', toggleDarkMode);
+
+                // Validación de cantidades
+                productos.forEach(producto => {
+                    const input = document.getElementById(`qty-${producto.id}`);
+                    input.addEventListener('blur', function() {
+                        const valor = parseInt(this.value) || 0;
+                        if (valor > producto.stock) {
+                            this.value = producto.stock;
+                            mostrarMensaje('status-warning', `⚠️ Máximo disponible: ${producto.stock}`);
+                        }
+                    });
+                });
+
+                mostrarMensaje('status-success', '✅ App cargada correctamente');
+                
+            } catch (error) {
+                console.error('Error al inicializar la app:', error);
+                mostrarMensaje('status-error', `❌ Error al cargar la aplicación: ${error.message}`);
+            }
+        }
+
+        // Iniciar la aplicación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        // Exportar funciones para uso global si es necesario
+        window.guardarVentas = guardarVentas;
+        window.cargarInventario = cargarInventario;
+        window.generarReporte = generarReporte;
+    </script>
 </body>
 </html>
